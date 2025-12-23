@@ -16,6 +16,9 @@ export default function Home() {
         showQrModal: true,
       });
 
+      // Initialize the provider
+      await wcProvider.init();
+
       // Connect to wallet
       wcProvider.connect();
 
