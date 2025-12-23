@@ -1,0 +1,15 @@
+body {
+  margin: 0;
+  font-family: system-ui;
+  background-color: #020617;
+  color: white;
+}
+
+.card {
+  border: 1px solid #1e293b;
+  padding: 28px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 460px;
+  text-align: center;
+}
