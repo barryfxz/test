@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connect Wallet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- WalletConnect Universal Provider -->
+  <script src="https://unpkg.com/@walletconnect/universal-provider@2.15.1/dist/index.umd.js"></script>
+
+  <!-- Ethers (lightweight, stable) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #020617;
+      padding: 24px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      background: #22c55e;
+      color: black;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    .address {
+      margin-top: 16px;
+      word-break: break-all;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Connect Wallet</h2>
+    <p style="color:#94a3b8">WalletConnect compatible</p>
+
+    <button id="connectBtn">Connect Wallet</button>
+
+    <div id="address" class="address"></div>
+  </div>
+
+  <script>
+    const connectBtn = document.getElementById("connectBtn");
+    const addressDiv = document.getElementById("address");
+
+    let provider;
+
+    connectBtn.onclick = async () => {
+      try {
+        connectBtn.disabled = true;
+        connectBtn.innerText = "Connecting...";
+
+        provider = await window.WalletConnectUniversalProvider.UniversalProvider.init({
+          projectId: "962425907914a3e80a7d8e7288b23f62", // YOUR WC PROJECT ID
+          chains: ["eip155:1"], // Ethereum Mainnet
+          methods: ["eth_requestAccounts", "personal_sign"],
+          events: ["accountsChanged", "chainChanged"],
+          metadata: {
+            name: "WalletConnect Demo",
+            description: "Simple wallet connection",
+            url: window.location.origin,
+            icons: ["https://walletconnect.com/walletconnect-logo.png"]
+          }
+        });
+
+        await provider.connect();
+
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const address = await signer.getAddress();
+
+        addressDiv.innerText = `Connected:\n${address}`;
+        connectBtn.innerText = "Wallet Connected";
+
+      } catch (err) {
+        console.error(err);
+        alert("Connection failed");
+        connectBtn.disabled = false;
+        connectBtn.innerText = "Connect Wallet";
+      }
+    };
+  </script>
+
+</body>
+</html>
