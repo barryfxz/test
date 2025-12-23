@@ -5,24 +5,24 @@
   <title>Wallet Connect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- WalletConnect Modal -->
-  <script src="https://unpkg.com/@walletconnect/modal@2.7.1/dist/index.umd.js"></script>
-
-  <!-- WalletConnect Ethereum Provider -->
+  <!-- WalletConnect Ethereum Provider ONLY -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.15.1/dist/index.umd.js"></script>
 
   <!-- Ethers -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
   <style>
+    * { box-sizing: border-box; }
+
     body {
       background: #020617;
       color: white;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      font-family: system-ui;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      margin: 0;
     }
 
     .card {
@@ -33,16 +33,8 @@
       width: 100%;
       max-width: 420px;
       text-align: center;
-      box-shadow: 0 0 40px rgba(0,0,0,.4);
-    }
-
-    h2 {
-      margin-bottom: 6px;
-    }
-
-    p {
-      color: #94a3b8;
-      font-size: 14px;
+      position: relative;
+      z-index: 10;
     }
 
     button {
@@ -52,23 +44,15 @@
       border-radius: 12px;
       border: none;
       font-weight: 600;
-      font-size: 15px;
       cursor: pointer;
     }
 
-    .primary {
-      background: #22c55e;
-      color: #020617;
-    }
-
-    .danger {
-      background: #ef4444;
-      color: white;
-    }
+    .primary { background: #22c55e; color: #020617; }
+    .danger { background: #ef4444; color: white; }
 
     .spinner {
       display: none;
-      margin: 18px auto;
+      margin: 16px auto;
       width: 28px;
       height: 28px;
       border: 3px solid #334155;
@@ -77,17 +61,12 @@
       animation: spin 1s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .status {
-      margin-top: 14px;
-      font-size: 14px;
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .success {
+      margin-top: 12px;
       color: #22c55e;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -95,14 +74,14 @@
 
 <div class="card">
   <h2>Connect Wallet</h2>
-  <p>Secure WalletConnect flow</p>
+  <p style="color:#94a3b8">WalletConnect compatible</p>
 
   <div class="spinner" id="spinner"></div>
 
   <button id="connectBtn" class="primary">Connect Wallet</button>
   <button id="disconnectBtn" class="danger" style="display:none;">Disconnect</button>
 
-  <div id="status" class="status"></div>
+  <div id="status"></div>
 </div>
 
 <script>
@@ -115,13 +94,6 @@
 
   let provider;
   let ethersProvider;
-  let signer;
-
-  const modal = new window.WalletConnectModal({
-    projectId,
-    chains: [1, 11155111], // Ethereum Mainnet + Sepolia
-    themeMode: "dark"
-  });
 
   async function connectWallet() {
     try {
@@ -130,38 +102,35 @@
 
       provider = await window.EthereumProvider.init({
         projectId,
-        chains: [1, 11155111],
+        chains: [1, 11155111], // Mainnet + Sepolia
         showQrModal: true
       });
 
       await provider.connect();
 
       ethersProvider = new ethers.BrowserProvider(provider);
-      signer = await ethersProvider.getSigner();
+      const signer = await ethersProvider.getSigner();
       const address = await signer.getAddress();
 
       statusEl.innerHTML = `
         <div class="success">
-          ✔ Wallet connected successfully<br>
+          ✔ Connected successfully<br>
           ${address.slice(0, 6)}...${address.slice(-4)}
         </div>
       `;
 
       connectBtn.style.display = "none";
       disconnectBtn.style.display = "block";
-    } catch (err) {
-      statusEl.textContent = "Connection failed. Please try again.";
-      console.error(err);
+    } catch (e) {
+      statusEl.textContent = "Connection failed.";
+      console.error(e);
     } finally {
       spinner.style.display = "none";
     }
   }
 
   async function disconnectWallet() {
-    if (provider) {
-      await provider.disconnect();
-    }
-
+    if (provider) await provider.disconnect();
     statusEl.textContent = "";
     connectBtn.style.display = "block";
     disconnectBtn.style.display = "none";
