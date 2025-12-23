@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WalletConnect – Working</title>
+  <title>Wallet Connect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- WalletConnect Modal (REQUIRED) -->
-  <script src="https://unpkg.com/@walletconnect/modal@2.7.1/dist/index.umd.js"></script>
+  <!-- Web3Modal Standalone (THIS IS THE KEY FIX) -->
+  <script src="https://unpkg.com/@web3modal/standalone@2.4.3/dist/index.umd.js"></script>
 
   <!-- WalletConnect Ethereum Provider -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.15.1/dist/index.umd.js"></script>
@@ -56,14 +56,13 @@
     }
     @keyframes spin { to { transform:rotate(360deg); } }
     .success { color:#22c55e; margin-top:12px; }
-    .error { color:#ef4444; margin-top:12px; }
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>Connect Wallet</h2>
-  <p style="color:#94a3b8">WalletConnect v2</p>
+  <p style="color:#94a3b8">Web3Modal Standalone</p>
 
   <div id="spinner" class="spinner"></div>
 
@@ -82,42 +81,43 @@
   const statusEl = document.getElementById("status");
 
   let provider;
-  let modal;
   let ethersProvider;
   let address;
+
+  // ✅ Web3Modal Standalone
+  const modal = new window.Web3Modal({
+    projectId,
+    themeMode: "dark",
+    walletConnectVersion: 2
+  });
 
   async function connectWallet() {
     try {
       spinner.style.display = "block";
       statusEl.innerHTML = "";
 
-      modal = new WalletConnectModal({
+      provider = await window.EthereumProvider.init({
         projectId,
         chains: [1, 11155111],
-        themeMode: "dark"
+        showQrModal: false
       });
 
-      provider = await EthereumProvider.init({
-        projectId,
-        chains: [1, 11155111]
-      });
-
-      // 🔥 THIS IS THE MISSING PIECE 🔥
+      // ✅ THIS OPENS THE WALLET SELECTOR
       provider.on("display_uri", (uri) => {
         modal.openModal({ uri });
       });
 
       await provider.connect();
 
+      modal.closeModal();
+
       ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       address = await signer.getAddress();
 
-      modal.closeModal();
-
       statusEl.innerHTML = `
         <div class="success">
-          ✔ Connected successfully<br>
+          ✔ Wallet Connected<br>
           ${address.slice(0,6)}...${address.slice(-4)}
         </div>
       `;
@@ -127,7 +127,7 @@
 
     } catch (err) {
       console.error(err);
-      statusEl.innerHTML = `<div class="error">Connection failed</div>`;
+      statusEl.innerHTML = `<div style="color:#ef4444">Connection failed</div>`;
     } finally {
       spinner.style.display = "none";
     }
@@ -138,7 +138,6 @@
       if (provider) await provider.disconnect();
     } catch (_) {}
 
-    provider = null;
     address = null;
     statusEl.innerHTML = "";
     connectBtn.style.display = "block";
