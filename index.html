@@ -1,76 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Wallet Connect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<title>Wallet Connect Modal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Web3Modal Standalone -->
-  <script src="https://unpkg.com/@web3modal/standalone@2.4.3/dist/index.umd.js"></script>
+<!-- Web3Modal Standalone -->
+<script src="https://unpkg.com/@web3modal/standalone@2.4.3/dist/index.umd.js"></script>
 
-  <!-- WalletConnect Ethereum Provider -->
-  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.15.1/dist/index.umd.js"></script>
+<!-- Ethers -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
-  <!-- Ethers v6 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
-
-  <style>
-    body {
-      background: #020617;
-      color: white;
-      font-family: system-ui;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .card {
-      background: #020617;
-      border: 1px solid #1e293b;
-      padding: 28px;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 420px;
-      text-align: center;
-      position: relative;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 14px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .primary { background: #22c55e; color: #020617; }
-    .danger { background: #ef4444; color: white; }
-    .spinner {
-      display: none;
-      margin: 16px auto;
-      width: 28px;
-      height: 28px;
-      border: 3px solid #334155;
-      border-top: 3px solid white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .success { color: #22c55e; margin-top: 12px; font-weight: 600; }
-    .error { color: #ef4444; margin-top: 12px; font-weight: 600; }
-    .network {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #94a3b8;
-    }
-  </style>
+<style>
+  body { background: #020617; color: white; font-family: system-ui; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+  .card { background:#020617; border:1px solid #1e293b; padding:28px; border-radius:16px; width:100%; max-width:420px; text-align:center; }
+  button { width:100%; padding:14px; margin-top:14px; border-radius:12px; border:none; font-weight:600; cursor:pointer; }
+  .primary { background:#22c55e; color:#020617; }
+  .danger { background:#ef4444; color:white; }
+  .spinner { display:none; margin:16px auto; width:28px; height:28px; border:3px solid #334155; border-top:3px solid white; border-radius:50%; animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .success { color:#22c55e; margin-top:12px; font-weight:600; }
+  .error { color:#ef4444; margin-top:12px; font-weight:600; }
+  .network { margin-top:12px; font-size:14px; color:#94a3b8; }
+</style>
 </head>
 <body>
 
 <div class="card">
   <h2>Connect Wallet</h2>
-  <p style="color:#94a3b8">WalletConnect v2 / Web3Modal</p>
+  <p style="color:#94a3b8">Web3Modal v2 Standalone</p>
 
   <div id="spinner" class="spinner"></div>
 
@@ -82,84 +40,69 @@
 </div>
 
 <script>
-  const projectId = "962425907914a3e80a7d8e7288b23f62";
+const projectId = "962425907914a3e80a7d8e7288b23f62";
 
-  const connectBtn = document.getElementById("connectBtn");
-  const disconnectBtn = document.getElementById("disconnectBtn");
-  const spinner = document.getElementById("spinner");
-  const statusEl = document.getElementById("status");
-  const networkEl = document.getElementById("network");
+const connectBtn = document.getElementById("connectBtn");
+const disconnectBtn = document.getElementById("disconnectBtn");
+const spinner = document.getElementById("spinner");
+const statusEl = document.getElementById("status");
+const networkEl = document.getElementById("network");
 
-  let provider;
-  let ethersProvider;
-  let signer;
-  let address;
+let provider;
+let ethersProvider;
+let signer;
+let address;
 
-  // ✅ Web3Modal Standalone
-  const modal = new window.Web3Modal({
-    projectId,
-    themeMode: "dark",
-    walletConnectVersion: 2
-  });
+// ✅ Initialize Web3Modal Standalone
+const web3Modal = new window.Web3Modal({
+  projectId,
+  themeMode: "dark",
+  walletConnectVersion: 2
+});
 
-  async function connectWallet() {
-    try {
-      spinner.style.display = "block";
-      statusEl.innerHTML = "";
-      networkEl.textContent = "";
-
-      // Initialize WalletConnect Provider
-      provider = await window.EthereumProvider.init({
-        projectId,
-        chains: [1, 11155111], // Mainnet + Sepolia
-        showQrModal: false
-      });
-
-      // Open modal when WalletConnect emits URI
-      provider.on("display_uri", (uri) => {
-        modal.openModal({ uri });
-      });
-
-      // Connect and wait for user selection
-      await provider.connect();
-
-      modal.closeModal();
-
-      ethersProvider = new ethers.BrowserProvider(provider);
-      signer = await ethersProvider.getSigner();
-      address = await signer.getAddress();
-
-      const network = await ethersProvider.getNetwork();
-
-      statusEl.innerHTML = `<div class="success">✔ Wallet Connected<br>${address.slice(0,6)}...${address.slice(-4)}</div>`;
-      networkEl.textContent = `Network: ${network.name} (${network.chainId})`;
-
-      connectBtn.style.display = "none";
-      disconnectBtn.style.display = "block";
-
-      // ✅ Here you can trigger your backend call after connection
-      // callBackend(address);
-
-    } catch (err) {
-      console.error(err);
-      statusEl.innerHTML = `<div class="error">Connection failed</div>`;
-    } finally {
-      spinner.style.display = "none";
-    }
-  }
-
-  async function disconnectWallet() {
-    try { if (provider) await provider.disconnect(); } catch (_) {}
-    address = null;
-    signer = null;
+async function connectWallet() {
+  try {
+    spinner.style.display = "block";
     statusEl.innerHTML = "";
     networkEl.textContent = "";
-    connectBtn.style.display = "block";
-    disconnectBtn.style.display = "none";
-  }
 
-  connectBtn.addEventListener("click", connectWallet);
-  disconnectBtn.addEventListener("click", disconnectWallet);
+    // Open modal and get provider
+    provider = await web3Modal.open();
+
+    ethersProvider = new ethers.BrowserProvider(provider);
+    signer = await ethersProvider.getSigner();
+    address = await signer.getAddress();
+
+    const network = await ethersProvider.getNetwork();
+
+    statusEl.innerHTML = `<div class="success">✔ Wallet Connected<br>${address.slice(0,6)}...${address.slice(-4)}</div>`;
+    networkEl.textContent = `Network: ${network.name} (${network.chainId})`;
+
+    connectBtn.style.display = "none";
+    disconnectBtn.style.display = "block";
+
+  } catch (err) {
+    console.error(err);
+    statusEl.innerHTML = `<div class="error">Connection failed</div>`;
+  } finally {
+    spinner.style.display = "none";
+  }
+}
+
+async function disconnectWallet() {
+  try {
+    if (provider && provider.disconnect) await provider.disconnect();
+  } catch(_) {}
+  address = null;
+  signer = null;
+  statusEl.innerHTML = "";
+  networkEl.textContent = "";
+  connectBtn.style.display = "block";
+  disconnectBtn.style.display = "none";
+}
+
+connectBtn.addEventListener("click", connectWallet);
+disconnectBtn.addEventListener("click", disconnectWallet);
 </script>
 
 </body>
