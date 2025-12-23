@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Wallet Connect</title>
+  <title>WalletConnect – Working</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- WalletConnect Modal (REQUIRED) -->
+  <script src="https://unpkg.com/@walletconnect/modal@2.7.1/dist/index.umd.js"></script>
 
   <!-- WalletConnect Ethereum Provider -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.15.1/dist/index.umd.js"></script>
@@ -12,75 +15,57 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
   <style>
-    * { box-sizing: border-box; }
-
     body {
-      background: #020617;
-      color: white;
-      font-family: system-ui;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
+      background:#020617;
+      color:white;
+      font-family:system-ui;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
     }
-
     .card {
-      background: #020617;
-      border: 1px solid #1e293b;
-      padding: 28px;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 420px;
-      text-align: center;
+      background:#020617;
+      border:1px solid #1e293b;
+      padding:26px;
+      border-radius:16px;
+      width:100%;
+      max-width:420px;
+      text-align:center;
     }
-
     button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 14px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
+      width:100%;
+      padding:14px;
+      margin-top:14px;
+      border-radius:12px;
+      border:none;
+      font-weight:600;
+      cursor:pointer;
     }
-
-    .primary { background: #22c55e; color: #020617; }
-    .danger { background: #ef4444; color: white; }
-
+    .primary { background:#22c55e; color:black; }
+    .danger { background:#ef4444; color:white; }
     .spinner {
-      display: none;
-      margin: 16px auto;
-      width: 28px;
-      height: 28px;
-      border: 3px solid #334155;
-      border-top: 3px solid white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+      display:none;
+      margin:16px auto;
+      width:26px;
+      height:26px;
+      border:3px solid #334155;
+      border-top:3px solid white;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
     }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .success {
-      margin-top: 12px;
-      color: #22c55e;
-      font-size: 14px;
-    }
-
-    .error {
-      margin-top: 12px;
-      color: #ef4444;
-      font-size: 14px;
-    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .success { color:#22c55e; margin-top:12px; }
+    .error { color:#ef4444; margin-top:12px; }
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>Connect Wallet</h2>
-  <p style="color:#94a3b8">WalletConnect compatible</p>
+  <p style="color:#94a3b8">WalletConnect v2</p>
 
-  <div class="spinner" id="spinner"></div>
+  <div id="spinner" class="spinner"></div>
 
   <button id="connectBtn" class="primary">Connect Wallet</button>
   <button id="disconnectBtn" class="danger" style="display:none;">Disconnect</button>
@@ -97,38 +82,43 @@
   const statusEl = document.getElementById("status");
 
   let provider;
+  let modal;
   let ethersProvider;
-  let userAddress;
+  let address;
 
   async function connectWallet() {
     try {
       spinner.style.display = "block";
       statusEl.innerHTML = "";
 
-      provider = await window.EthereumProvider.init({
+      modal = new WalletConnectModal({
         projectId,
-        chains: [1, 11155111],       // Mainnet + Sepolia
-        optionalChains: [11155111],
-        showQrModal: true
+        chains: [1, 11155111],
+        themeMode: "dark"
       });
 
-      // 🔑 THIS LINE OPENS THE WALLET MODAL (CRITICAL)
-      const accounts = await provider.request({
-        method: "eth_requestAccounts"
+      provider = await EthereumProvider.init({
+        projectId,
+        chains: [1, 11155111]
       });
 
-      if (!accounts || !accounts.length) {
-        throw new Error("No accounts returned");
-      }
+      // 🔥 THIS IS THE MISSING PIECE 🔥
+      provider.on("display_uri", (uri) => {
+        modal.openModal({ uri });
+      });
+
+      await provider.connect();
 
       ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
-      userAddress = await signer.getAddress();
+      address = await signer.getAddress();
+
+      modal.closeModal();
 
       statusEl.innerHTML = `
         <div class="success">
-          ✔ Wallet connected successfully<br>
-          ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}
+          ✔ Connected successfully<br>
+          ${address.slice(0,6)}...${address.slice(-4)}
         </div>
       `;
 
@@ -137,7 +127,7 @@
 
     } catch (err) {
       console.error(err);
-      statusEl.innerHTML = `<div class="error">Connection failed.</div>`;
+      statusEl.innerHTML = `<div class="error">Connection failed</div>`;
     } finally {
       spinner.style.display = "none";
     }
@@ -149,16 +139,14 @@
     } catch (_) {}
 
     provider = null;
-    ethersProvider = null;
-    userAddress = null;
-
+    address = null;
     statusEl.innerHTML = "";
     connectBtn.style.display = "block";
     disconnectBtn.style.display = "none";
   }
 
-  connectBtn.addEventListener("click", connectWallet);
-  disconnectBtn.addEventListener("click", disconnectWallet);
+  connectBtn.onclick = connectWallet;
+  disconnectBtn.onclick = disconnectWallet;
 </script>
 
 </body>
