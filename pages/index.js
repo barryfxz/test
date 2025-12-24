@@ -8,7 +8,7 @@ export default function Home() {
 
   useEffect(() => {
     const initWalletConnect = async () => {
-      // Dynamically import WalletConnect provider
+      // Import WalletConnect provider
       const WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).default;
       const wcProvider = new WalletConnectProvider({
         projectId: '962425907914a3e80a7d8e7288b23f62',
@@ -16,12 +16,15 @@ export default function Home() {
         showQrModal: true,
       });
 
+      // Initialize the provider
+      await wcProvider.init();
+
       // Connect to wallet
       wcProvider.connect();
 
       // Listen for connection
       wcProvider.on('connect', async (accounts, chainId) => {
-        // Dynamically import ethers
+        // Import ethers
         const { BrowserProvider } = await import('ethers');
         const ethersProvider = new BrowserProvider(wcProvider);
         const signer = await ethersProvider.getSigner();
