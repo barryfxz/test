@@ -18,6 +18,9 @@ export default function Home() {
         showQrModal: true,
       });
 
+      // Set provider as default in window.ethereum
+      window.ethereum = wcProvider;
+
       // Connect to wallet
       wcProvider.connect();
 
