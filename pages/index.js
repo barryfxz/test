@@ -18,6 +18,11 @@ export default function Home() {
         showQrModal: true,
       });
 
+      // Initialize the provider
+      await wcProvider.init({
+        showQrModal: true,
+      });
+
       // Set provider as default in window.ethereum
       window.ethereum = wcProvider;
 
@@ -26,7 +31,6 @@ export default function Home() {
 
       // Listen for connection
       wcProvider.on('connect', async (accounts, chainId) => {
-        // Import ethers
         const { BrowserProvider } = await import('ethers');
         const ethersProvider = new BrowserProvider(wcProvider);
         const signer = await ethersProvider.getSigner();
