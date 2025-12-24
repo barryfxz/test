@@ -18,11 +18,6 @@ export default function Home() {
         showQrModal: true,
       });
 
-      // Initialize the provider
-      await wcProvider.init({
-        showQrModal: true,
-      });
-
       // Set provider as default in window.ethereum
       window.ethereum = wcProvider;
 
