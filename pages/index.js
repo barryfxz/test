@@ -9,15 +9,14 @@ export default function Home() {
   useEffect(() => {
     const initWalletConnect = async () => {
       // Import WalletConnect provider
-      const WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).default;
-      const wcProvider = new WalletConnectProvider({
+      const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+
+      // Initialize provider
+      const wcProvider = new EthereumProvider({
         projectId: '962425907914a3e80a7d8e7288b23f62',
         chains: [1, 11155111], // mainnet and sepolia
         showQrModal: true,
       });
-
-      // Initialize the provider
-      await wcProvider.init();
 
       // Connect to wallet
       wcProvider.connect();
